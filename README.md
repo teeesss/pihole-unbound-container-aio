@@ -1,53 +1,54 @@
-# Pi-hole + Unbound All-in-One Docker Setup
+# Pi-hole + Unbound All-in-One Docker Setup (Robust & Automated)
 
-This repository contains the definitive, robust configuration for running a self-contained Pi-hole and Unbound DNS resolver in a single Docker container. This setup is specifically hardened to work on a complex, shared Ubuntu host.
+This repository contains the definitive, robust configuration for running a self-contained Pi-hole and Unbound DNS resolver in a single Docker container. This setup is hardened to work on a shared Ubuntu host and is resilient against common permission and sync-related issues.
 
-## Core Architecture: The All-in-One Image
+## Key Features
 
-After extensive troubleshooting, it was determined that the most stable and secure solution is to use the **`mpgirro/pihole-unbound`** community image.
-
-This approach provides the best of all worlds:
-*   **Simplicity:** The entire stack runs as a single Docker service (`pihole`), eliminating all complex multi-container networking issues.
-*   **Conflict Avoidance:** By running Unbound inside the Pi-hole container, we avoid all potential port conflicts with other services on the host (like a Unifi controller).
-*   **Resilience:** The setup is made immune to configuration drift from sync tools (like `nebula-sync`) by using environment variables in the `docker-compose.yml` that enforce the correct settings on every container start.
+*   **Automated Installer & Manager:** A single `install.sh` script handles initial setup, diagnostics, updates, and maintenance.
+*   **Correct Permissions by Default:** The script automatically detects the correct host user ID (`PIHOLE_UID`/`GID`) to prevent all volume permission errors.
+*   **Resilient Configuration:** The setup enforces the correct upstream DNS settings on every container start, making it immune to configuration drift.
+*   **Sync Tool Compatibility:** Includes a one-time, automated permission fixer for seamless integration with root-level file sync tools like `nebula-sync`.
+*   **All-in-One Simplicity:** Uses the `mpgirro/pihole-unbound` image to run the entire stack in one container, eliminating complex networking and port conflicts.
 
 ---
 
 ## Setup Instructions
 
-The entire setup process is automated by the `install.sh` script.
+The entire process is handled by the `install.sh` script.
 
-### Step 1: Configure the Installer Script
-
-Before running, open the `install.sh` script and customize the variables in the configuration block at the top to match your environment (e.g., `PROJECT_DIR`, `PIHOLE_PASSWORD`, etc.).
+### Step 1: (Optional) Configure Script Variables
+Before running, you can open `install.sh` and edit the configuration variables at the top (e.g., `PIHOLE_PASSWORD`, `TIMEZONE`). The defaults are also fine.
 
 ### Step 2: Run the Installer
+The script is interactive and will confirm all settings before making any changes to your system. Execute it with `sudo`.
 
-The script is interactive and safe. It will ask you to confirm the installation path and all settings before making any changes. Execute it with `sudo`.
-
-    sudo ./install.sh
+```
+sudo ./install.sh
+```
 
 The script will:
-1.  **Prepare the Host:** Reconfigure `systemd-resolved` to free up port 53 for Pi-hole.
-2.  **Create `docker-compose.yml`:** Generate the final Docker Compose file that orchestrates the service.
-3.  **Automate Configuration:** Launch the container, wait for it to create its initial config, and then automatically use `sed` to correct the `listeningMode` to `ALL`.
-4.  **Launch & Verify:** Restart the container with the correct settings and perform a final verification to confirm the setup was successful.
+1.  **Prepare the Host:** Reconfigure `systemd-resolved` to free up port 53.
+2.  **Create Project Files:** Generate the final `docker-compose.yml` and `.env` files.
+3.  **Automate Configuration:** Launch the container and automatically correct the Pi-hole `listeningMode`.
+4.  **Launch & Verify:** Restart the container and perform a robust, multi-attempt verification to ensure the setup is fully functional.
 
----
+### Management & Troubleshooting
 
-### Post-Installation
+After installation, simply re-run `sudo ./install.sh` at any time to access the **Management Menu**.
 
-After the script completes, your Pi-hole is live.
+From there, you can:
+*   Update the container image.
+*   Run diagnostics to check the system's health.
+*   Perform a full re-install.
+*   **Install the automated permission fixer for `nebula-sync`.**
 
-1.  **Check Status:** You can verify the system's health at any time using the `check_status.sh` script that the installer creates for you.
+### Post-Installation Verification
 
-        sudo ./check_status.sh
+Your Pi-hole is live once the script completes.
 
-2.  **Access the Web Interface:**
-    Open your browser and navigate to your host's IP on the port you configured (e.g., `8088`):
+1.  **Access the Web Interface:**
+    Navigate to `http://<your_host_ip>:8088/admin/`.
+2.  **Login** with the password you set.
+3.  Go to **Settings -> DNS**. You will see that the only upstream DNS server is `Custom 1 (IPv4): 127.0.0.1#5335`. This confirms Pi-hole is correctly using its internal Unbound service.
 
-        http://<your_host_ip>:8088/admin/
-
-Login with the password you set. Go to **Settings -> DNS**. You will see that the only upstream DNS server configured and checked is `Custom 1 (IPv4): 127.0.0.1#5335`. This confirms Pi-hole is correctly using the Unbound service running inside the same container.
-
-For a list of common management commands, see the `INFO.md` file.
+For a list of common manual commands, see the `INFO.md` file.
