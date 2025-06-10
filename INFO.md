@@ -99,7 +99,7 @@ The `install.sh` script is your main tool for managing the stack. Running it aft
 
 ---
 
-### Troubleshooting `nebula-sync`
+### Troubleshooting `nebula-sync` (If using)
 
 *   **Problem:** After `nebula-sync` runs, updating gravity fails with `Permission denied` or `FOREIGN KEY` errors.
 *   **Cause:** `nebula-sync` (running as root) changes the ownership of `gravity.db` on the host volume.
