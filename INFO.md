@@ -12,8 +12,11 @@ The `install.sh` script is your main tool for managing the stack. Running it aft
 
     sudo ./install.sh
 
-*   **Option [2]** runs a full diagnostic check.
-*   **Option [4]** installs the automated permission fixer for `nebula-sync`.
+*   **Option [1]** Re-pull Latest Image & Recreate Container
+*   **Option [2]** runs a full diagnostic check
+*   **Option [3]** Force Full Re-install (Deletes ALL existing Pi-hole data!). # Run this for a new install
+*   **Option [4]** installs the automated permission fixer for `nebula-sync`
+*   **Option [4]** Exit
 
 ---
 
