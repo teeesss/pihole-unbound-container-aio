@@ -79,12 +79,6 @@ The `install.sh` script is your main tool for managing the stack. Running it aft
     sudo docker exec pihole pihole -g
     ```
 
-*   **Check Unbound Status:**
-    This command asks the running Unbound process for its status.
-    ```bash
-    sudo docker exec pihole unbound-control status
-    ```
-
 *   **Test Unbound Resolution Directly:**
     This bypasses Pi-hole and queries the internal Unbound service. This is the best way to test Unbound's health.
     ```bash
