@@ -54,7 +54,7 @@ prepare_host() {
 create_unbound_config() {
   log "STEP 2A: Creating Enhanced Unbound Configuration with DNSSEC"
   mkdir -p "${PROJECT_DIR}/unbound-config"
-  
+
   cat << 'EOF' > "${PROJECT_DIR}/unbound-config/unbound.conf"
 server:
     # Basic configuration
@@ -80,10 +80,10 @@ server:
     harden-referral-path: yes
     unwanted-reply-threshold: 10000000
 
-    # CRITICAL DNSSEC Configuration
+    # CRITICAL DNSSEC Configuration - FIXED VERSION
     module-config: "validator iterator"
+    # FIXED: Use ONLY auto-trust-anchor-file, not both trust-anchor-file AND auto-trust-anchor-file
     auto-trust-anchor-file: "/opt/unbound/etc/unbound/root.key"
-    trust-anchor-file: "/opt/unbound/etc/unbound/root.key"
     val-clean-additional: yes
     val-permissive-mode: no
     val-log-level: 2
@@ -122,9 +122,10 @@ EOF
   printf "${TICK} Enhanced Unbound configuration created.\n"
 }
 
+
 create_root_key() {
   log "STEP 2B: Creating Root Trust Anchor with Current KSK"
-  
+
   # Create the root.key with the current IANA root trust anchor (2017 KSK)
   cat << 'EOF' > "${PROJECT_DIR}/unbound-config/root.key"
 ; autotrust trust anchor file
@@ -135,7 +136,7 @@ create_root_key() {
 ;;query_failed: 0
 ;;query_interval: 43200
 ;;retry_time: 900
-.	172800	IN	DNSKEY	257 3 8 AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3+/4RgWOq7HrxRixHlFlExOLAJr5emLvN7SWXgnLh4+B5xQlNVz8Og8kvArMtNROxVQuCaSnIDdD5LKyWbRd2n9WGe2R8PzgCmr3EgVLrjyBxWezF0jLHwVN8efS3rCj/EWgvIWgb9tarpVUDK/b58Da+sqqls3eNbuv7pr+eoZG+SrDK6nWeL3c6H5Apxz7LjVc1uTIdsIXxuOLYA4/ilBmSVIzuDWfdRUfhHdY6+cn8HFRm+2hM8AnXGXws9555KrUB5qihylGa8subX2Nn6UwNR1AkUTV74bU= ;{id = 20326 (ksk), size = 2048b}
+.       172800  IN      DNSKEY  257 3 8 AwEAAaz/tAm8yTn4Mfeh5eyI96WSVexTBAvkMgJzkKTOiW1vkIbzxeF3+/4RgWOq7HrxRixHlFlExOLAJr5emLvN7SWXgnLh4+B5xQlNVz8Og8kvArMtNROxVQuCaSnIDdD5LKyWbRd2n9WGe2R8PzgCmr3EgVLrjyBxWezF0jLHwVN8efS3rCj/EWgvIWgb9tarpVUDK/b58Da+sqqls3eNbuv7pr+eoZG+SrDK6nWeL3c6H5Apxz7LjVc1uTIdsIXxuOLYA4/ilBmSVIzuDWfdRUfhHdY6+cn8HFRm+2hM8AnXGXws9555KrUB5qihylGa8subX2Nn6UwNR1AkUTV74bU= ;{id = 20326 (ksk), size = 2048b}
 ;;state=2 [  VALID  ] ;;count=0 ;;lastchange=1718650800 ;;Mon Jun 17 19:46:40 2025
 EOF
 
@@ -151,7 +152,7 @@ EOF
 ;       (e.g. reference this file in the "cache  .  <file>"
 ;       configuration file of BIND domain name servers).
 ;
-;       This file is made available by InterNIC 
+;       This file is made available by InterNIC
 ;       under anonymous FTP as
 ;           file                /domain/named.cache
 ;           on server           FTP.INTERNIC.NET
@@ -314,7 +315,7 @@ EOF
 test_dnssec_validation() {
     local host_ip="$1"
     printf "${INFO} Testing DNSSEC validation with known test domains...\n"
-    
+
     # Test 1: Valid DNSSEC domain
     printf "  ${INFO} Testing valid DNSSEC domain (cloudflare.com): "
     if dig @"$host_ip" cloudflare.com +dnssec +short > /dev/null 2>&1; then
@@ -322,7 +323,7 @@ test_dnssec_validation() {
     else
         printf "${CROSS} Failed\n"
     fi
-    
+
     # Test 2: Domain with intentionally broken DNSSEC
     printf "  ${INFO} Testing broken DNSSEC (sigfail.verteiltesysteme.net): "
     local test_output
@@ -333,7 +334,7 @@ test_dnssec_validation() {
     else
         printf "${CROSS} Does not return SERVFAIL\n"
     fi
-    
+
     # Test 3: Alternative broken DNSSEC domain
     printf "  ${INFO} Testing broken DNSSEC (www.dnssec-failed.org): "
     test_output=$(dig @"$host_ip" www.dnssec-failed.org +time=5 +tries=1 2>&1)
@@ -343,7 +344,7 @@ test_dnssec_validation() {
     else
         printf "${CROSS} Does not return SERVFAIL\n"
     fi
-    
+
     # Test 4: DNSSEC.fail test domain
     printf "  ${INFO} Testing broken DNSSEC (fail01.dnssec.fail): "
     test_output=$(dig @"$host_ip" fail01.dnssec.fail +time=5 +tries=1 2>&1)
@@ -353,7 +354,7 @@ test_dnssec_validation() {
     else
         printf "${CROSS} Does not return SERVFAIL\n"
     fi
-    
+
     printf "${CROSS} ${RED}DNSSEC validation is NOT working - no test domains returned SERVFAIL${NC}\n"
     return 1
 }
@@ -391,12 +392,12 @@ run_installation() {
     printf " ${TICK}\n"
     printf "${INFO} Automatically correcting 'listeningMode'...\n"
     sudo sed -i 's/listeningMode = "LOCAL"/listeningMode = "ALL"/' "$pihole_toml_path"
-    
+
     printf "${INFO} Ensuring DNSSEC is enabled in Pi-hole config...\n"
     if ! grep -q "dnssec = true" "$pihole_toml_path"; then
         sudo sed -i '/\[dns\]/a dnssec = true' "$pihole_toml_path"
     fi
-    
+
     printf "${INFO} Setting proper permissions for unbound files...\n"
     sudo chown -R ${DETECTED_UID}:${DETECTED_GID} "${PROJECT_DIR}/unbound-config"
     sudo chmod 644 "${PROJECT_DIR}/unbound-config/root.key"
@@ -406,7 +407,7 @@ run_installation() {
     sudo chmod 644 "${PROJECT_DIR}/unbound-config/unbound_server.pem"
     sudo chmod 600 "${PROJECT_DIR}/unbound-config/unbound_control.key"
     sudo chmod 644 "${PROJECT_DIR}/unbound-config/unbound_control.pem"
-    
+
     printf "${INFO} Restarting container to apply the final configuration...\n"
     sudo docker-compose restart
 
@@ -423,11 +424,11 @@ run_installation() {
         printf "${INFO} Checking Unbound service status...\n"
         if sudo docker exec pihole pgrep -x unbound > /dev/null; then
             printf "${TICK} Unbound process is running.\n"
-            
+
             # Generate proper unbound control certificates
             printf "${INFO} Setting up unbound control interface...\n"
             sudo docker exec pihole unbound-control-setup -d /opt/unbound/etc/unbound/ > /dev/null 2>&1
-            
+
             if test_dnssec_validation "$HOST_IP"; then
                 printf "${TICK} ${GREEN}DNSSEC validation is working correctly!${NC}\n"
             else
@@ -488,48 +489,46 @@ run_installation() {
 setup_permission_fix_cron() {
     log "Setting up Automated Permission Fixer"
     printf "${INFO} This will install a cron job on the HOST system for the 'root' user.\n"
-    printf "${INFO} It will run every minute to ensure 'gravity.db' and unbound files have the correct ownership.\n"
+    printf "${INFO} It will run every HOUR to ensure 'gravity.db' and unbound files have the correct ownership.\n"
     printf "${WARN} This is the recommended solution for users of file-sync tools like nebula-sync.\n\n"
 
-    # Define the exact commands and cron schedule. No 'sudo' is needed as it runs from root's crontab.
+    # Define the exact commands and cron schedule - CHANGED TO HOURLY
     local cron_command1="chown ${DETECTED_UID}:${DETECTED_GID} ${PROJECT_DIR}/etc-pihole/gravity.db > /dev/null 2>&1"
     local cron_command2="chown -R ${DETECTED_UID}:${DETECTED_GID} ${PROJECT_DIR}/unbound-config/ > /dev/null 2>&1"
-    local cron_job1="* * * * * ${cron_command1}"
-    local cron_job2="* * * * * ${cron_command2}"
+    # CHANGED: Now runs at minute 0 of every hour instead of every minute
+    local cron_job1="0 * * * * ${cron_command1}"
+    local cron_job2="0 * * * * ${cron_command2}"
 
     # Check if the cron jobs already exist to prevent duplicates
     local existing_cron=$(sudo crontab -l 2>/dev/null)
     local jobs_added=0
-    
+
     if ! echo "$existing_cron" | grep -qF "${cron_command1}"; then
-        printf "${INFO} Installing gravity.db permission fix cron job...\n"
+        printf "${INFO} Installing gravity.db permission fix cron job (hourly)...\n"
         (sudo crontab -l 2>/dev/null; echo "${cron_job1}") | sudo crontab -
         jobs_added=$((jobs_added + 1))
     fi
-    
+
     if ! echo "$existing_cron" | grep -qF "${cron_command2}"; then
-        printf "${INFO} Installing unbound config permission fix cron job...\n"
+        printf "${INFO} Installing unbound config permission fix cron job (hourly)...\n"
         (sudo crontab -l 2>/dev/null; echo "${cron_job2}") | sudo crontab -
         jobs_added=$((jobs_added + 1))
     fi
-    
+
     if [ $jobs_added -gt 0 ]; then
         printf "${TICK} ${GREEN}%s automated permission fix cron job(s) successfully installed!${NC}\n" "$jobs_added"
-        printf "${INFO} They will automatically correct permissions every minute.\n"
+        printf "${INFO} They will automatically correct permissions every hour.\n"
     else
         printf "${TICK} ${GREEN}The automated permission fix cron jobs are already installed for the root user.${NC}\n"
     fi
-    
-    printf "\n${INFO} You can view the root user's cron jobs with: '${YELLOW}sudo crontab -l${NC}'\n"
-    printf "${INFO} To remove these jobs later, run '${YELLOW}sudo crontab -e${NC}' and delete the corresponding lines.\n"
 }
 
 run_diagnostics() {
     log "Running Enhanced Diagnostics with DNSSEC Tests"
-    
+
     printf "${INFO} Checking container status:\n"
     sudo docker-compose ps
-    
+
     printf "\n${INFO} Checking internal processes:\n"
     printf "  - Unbound: "
     if sudo docker exec pihole pgrep -x unbound > /dev/null; then
@@ -537,18 +536,18 @@ run_diagnostics() {
     else
         printf "${CROSS} NOT RUNNING\n"
     fi
-    
+
     printf "  - Pi-hole FTL: "
     if sudo docker exec pihole pgrep -x pihole-FTL > /dev/null; then
         printf "${TICK} Running\n"
     else
         printf "${CROSS} NOT RUNNING\n"
     fi
-    
+
     printf "\n${INFO} Testing DNSSEC validation:\n"
     local host_ip
     host_ip=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -n 1)
-    
+
     # Test basic DNS resolution
     printf "  - Basic DNS resolution: "
     if dig @"$host_ip" google.com +short > /dev/null; then
@@ -556,14 +555,19 @@ run_diagnostics() {
     else
         printf "${CROSS} Failed\n"
     fi
-    
-    # Run comprehensive DNSSEC tests
-    if test_dnssec_validation "$host_ip"; then
-        printf "  ${TICK} ${GREEN}DNSSEC validation is working!${NC}\n"
+
+    if test_dnssec_validation "$HOST_IP" > /dev/null 2>&1; then
+        printf "${GREEN}Working${NC}\n"
     else
-        printf "  ${CROSS} ${RED}DNSSEC validation is not working properly.${NC}\n"
+        printf "${RED}Not Working${NC}\n"
     fi
-    
+
+    # NEW: Automatically set up permission fixer for nebula-sync compatibility
+    printf "\n${INFO} Setting up automatic permission fixer for nebula-sync compatibility...\n"
+    setup_permission_fix_cron
+
+    printf "\n${INFO} To change your password later, run: ${GREEN}sudo docker exec -it pihole pihole setpassword${NC}\n"
+
     printf "\n${INFO} Checking Unbound configuration syntax:\n"
     if sudo docker exec pihole unbound-checkconf /opt/unbound/etc/unbound/unbound.conf > /dev/null 2>&1; then
         printf "  ${TICK} Unbound configuration is valid\n"
@@ -571,7 +575,7 @@ run_diagnostics() {
         printf "  ${CROSS} Unbound configuration has errors:\n"
         sudo docker exec pihole unbound-checkconf /opt/unbound/etc/unbound/unbound.conf
     fi
-    
+
     printf "\n${INFO} Checking file permissions:\n"
     printf "  - unbound-config directory: "
     if [ -d "${PROJECT_DIR}/unbound-config" ]; then
@@ -580,7 +584,7 @@ run_diagnostics() {
     else
         printf "${CROSS} Directory not found\n"
     fi
-    
+
     printf "  - root.key file: "
     if [ -f "${PROJECT_DIR}/unbound-config/root.key" ]; then
         local file_owner=$(stat -c '%U:%G' "${PROJECT_DIR}/unbound-config/root.key" 2>/dev/null)
@@ -588,7 +592,7 @@ run_diagnostics() {
     else
         printf "${CROSS} File not found\n"
     fi
-    
+
     printf "\n${INFO} Displaying last 30 lines of Pi-hole log:\n"
     sudo docker logs pihole --tail 30
 }
@@ -665,9 +669,16 @@ main() {
      printf "${RED}This script must be run with sudo privileges.${NC}\n"
      exit 1
   fi
-  if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then printf "${RED}Error: Docker or Docker Compose is not installed.${NC}\n"; exit 1; fi
 
-  cd "$PROJECT_DIR" || { printf "${RED}Failed to change to project directory. This should not happen.${NC}\n"; exit 1; fi
+  if ! command -v docker &> /dev/null || ! command -v docker-compose &> /dev/null; then
+     printf "${RED}Error: Docker or Docker Compose is not installed.${NC}\n"
+     exit 1
+  fi
+
+  cd "$PROJECT_DIR" || {
+     printf "${RED}Failed to change to project directory. This should not happen.${NC}\n"
+     exit 1
+  }
 
   if [ -f "docker-compose.yml" ]; then
     show_management_menu
