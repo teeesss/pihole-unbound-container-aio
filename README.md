@@ -19,7 +19,8 @@ This repository contains the definitive, robust configuration for running a self
 The entire process is handled by the `install.sh` script, which includes automatic DNSSEC configuration and validation.
 
 ### Step 1: (Optional) Configure Script Variables
-Before running, you can open `install.sh` and edit the configuration variables at the top (e.g., `PIHOLE_PASSWORD`, `TIMEZONE`). The defaults work well.
+Before running, you can open `install.sh` and edit the configuration variables at the top (e.g., `PIHOLE_PASSWORD`, `TIMEZONE`).
+The defaults work, but modify as needed.
 
 ### Step 2: Run the Installer
 The script is interactive and will confirm all settings before making any changes to your system. Execute it with `sudo`.
